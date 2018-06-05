@@ -54,6 +54,8 @@ sed -i 's/-O2/-O3 --llvm-lto 3/g' CMakeCache.txt
 
 make
 sed -i 's/INVOKE_RUN=0/& -s NO_EXIT_RUNTIME=1 -s NO_DYNAMIC_EXECUTION=1 -s DISABLE_EXCEPTION_CATCHING=1 --memory-init-file 0/g' ./CMakeFiles/webp_js.dir/build.make
+sed -i 's/libwebpdecoder.bc/& libwebpdemux.bc/' ./CMakeFiles/webp_js.dir/linklibs.rsp
+rm webp.js
 make
 
 sed 's!^!// !' ../COPYING > webp.jsx

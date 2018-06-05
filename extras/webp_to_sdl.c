@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include "src/webp/decode.h"
+#include "src/webp/demux.h"
 
 #if defined(WEBP_HAVE_JUST_SDL_H)
 #include <SDL.h>
@@ -37,6 +38,7 @@ int WebpToSDL(const char* data, unsigned int data_size) {
   WebPDecBuffer* const output = &config.output;
   SDL_Surface* screen = NULL;
   SDL_Surface* surface = NULL;
+  WebPDemuxer* demux = NULL;
 
   if (!WebPInitDecoderConfig(&config)) {
     fprintf(stderr, "Library version mismatch!\n");
@@ -50,6 +52,19 @@ int WebpToSDL(const char* data, unsigned int data_size) {
 
   status = WebPGetFeatures((uint8_t*)data, (size_t)data_size, &config.input);
   if (status != VP8_STATUS_OK) goto Error;
+
+  if (input->has_animation) {
+    WebPIterator iter;
+    WebPData webp_data = { (const uint8_t*)data, data_size };
+    demux = WebPDemux(&webp_data);
+    if (demux == NULL || !WebPDemuxGetFrame(demux, 1, &iter)) {
+      fprintf(stderr, "Unable to demux frame!\n");
+      goto Error;
+    }
+    data = (const char *)iter.fragment.bytes;
+    data_size = (unsigned)iter.fragment.size;
+    WebPDemuxReleaseIterator(&iter);
+  }
 
   screen = SDL_SetVideoMode(input->width, input->height, 32, SDL_SWSURFACE);
   if (screen == NULL) {
@@ -102,6 +117,7 @@ int WebpToSDL(const char* data, unsigned int data_size) {
   SDL_FreeSurface(surface);
   SDL_FreeSurface(screen);
   WebPFreeDecBuffer(output);
+  WebPDemuxDelete(demux);
   return ok;
 }
 
